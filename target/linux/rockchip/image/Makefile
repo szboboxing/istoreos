@@ -20,6 +20,21 @@ define Build/boot-common
 	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
 endef
 
+define Build/boot-combined
+	# This creates a new folder copies the dtbs (as rockchip*.dtb) 
+	# and the kernel image (as kernel.img)
+	rm -fR $@.boot
+	mkdir -p $@.boot
+
+	i=0; \
+	for dts in $(DEVICE_DTS); do \
+		$(CP) $(KDIR)/image-$${dts}.dtb $@.boot/rockchip$$(perl -e 'printf "%b\n",'$$i).dtb; \
+		let i+=1; \
+	done
+	$(LN) rockchip0.dtb $@.boot/rockchip.dtb
+	$(CP) $(IMAGE_KERNEL) $@.boot/kernel.img
+endef
+
 define Build/boot-script
 	# Make an U-boot image and copy it to the boot partition
 	mkimage -A arm -O linux -T script -C none -a 0 -e 0 -d $(if $(1),$(1),mmc).bootscript $@.boot/boot.scr
@@ -53,7 +68,7 @@ define Build/pine64-bin
 	# Generate a new partition table in $@ with 32 MiB of alignment
 	# padding for the idbloader, uboot and trust image to fit:
 	# http://opensource.rock-chips.com/wiki_Boot_option#Boot_flow
-	PADDING=1 $(SCRIPT_DIR)/gen_image_generic.sh \
+	$(SCRIPT_DIR)/gen_image_generic.sh \
 		$@ \
 		$(CONFIG_TARGET_KERNEL_PARTSIZE) $@.boot \
 		$(CONFIG_TARGET_ROOTFS_PARTSIZE) $(IMAGE_ROOTFS) \

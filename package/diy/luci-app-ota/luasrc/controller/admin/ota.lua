@@ -7,6 +7,10 @@ module("luci.controller.admin.ota",package.seeall)
 require "luci.util"
 
 function index()
+  if luci.sys.call("ota >/dev/null 2>&1") ~= 0 then
+    return
+  end
+
   entry({"admin", "system", "ota"}, post_on({ apply = "1" }, "action_ota"), _("OTA"), 69)
   entry({"admin", "system", "ota", "check"}, post("action_check"))
   entry({"admin", "system", "ota", "download"}, post("action_download"))
@@ -83,11 +87,8 @@ function action_check()
     code = 500,
     msg = "Unknown"
   }
-  if r == 0 then
-    ret.code = 0
-    ret.msg = o
-  elseif r == 1 then
-    ret.code = 1
+  if r == 0 or r == 1 or r == 2 then
+    ret.code = r
     ret.msg = o
   else
     ret.code = 500
@@ -123,7 +124,7 @@ function action_progress()
   if r == 0 then
     ret.code = 0
     ret.msg = "done"
-  elseif r == 1 or r == 2 then
+  elseif r == 1 or r == 2 or r == 254 then
     ret.code = r
     ret.msg = o
   else
